@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/services/sound_service.dart';
+import '../../core/services/update_service.dart';
 import '../widgets/bounce_button.dart';
 import 'analytics_screen.dart';
 import 'dashboard_screen.dart';
@@ -49,6 +50,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       activeIcon: CupertinoIcons.gear_alt_fill,
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateService.instance.checkForImmediateUpdate(context: context);
+    });
+  }
 
   void _onTabSelected(int index) {
     if (_currentIndex == index) return;

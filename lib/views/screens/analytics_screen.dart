@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_icons.dart';
 import '../../models/habit_category.dart';
+import '../../models/milestone_badge.dart';
 import '../../providers/habit_provider.dart';
 import '../widgets/bounce_card.dart';
 import '../widgets/frosted_app_bar.dart';
@@ -101,13 +102,19 @@ class AnalyticsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
-          // 2. 30-Day Heatmap Card
+          // 2. 30-Day Heatmap Card (wrapped in RepaintBoundary for 60/120fps scrolling)
           BounceCard(
             padding: const EdgeInsets.all(20),
-            child: StreakHeatmap(
-              heatmapData: heatmapData,
+            child: RepaintBoundary(
+              child: StreakHeatmap(
+                heatmapData: heatmapData,
+              ),
             ),
           ),
+          const SizedBox(height: 18),
+
+          // 3. Streak Milestones & Trophies
+          _buildMilestonesCard(context, isDark, habitProvider),
           const SizedBox(height: 18),
 
           // 3. Weekly 7-Day Completion Trend Bar Chart
@@ -334,6 +341,127 @@ class AnalyticsScreen extends StatelessWidget {
                   }),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMilestonesCard(BuildContext context, bool isDark, HabitProvider provider) {
+    final theme = Theme.of(context);
+    final totalCompletions = provider.overallTotalCompletions;
+    final bestStreak = provider.overallBestStreak;
+    final badges = MilestoneBadge.allBadges;
+
+    final unlockedCount = badges.where((b) => b.checkUnlocked(totalCompletions, bestStreak)).length;
+
+    return BounceCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Streak Milestones & Trophies',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$unlockedCount / ${badges.length}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Column(
+            children: badges.map((badge) {
+              final isUnlocked = badge.checkUnlocked(totalCompletions, bestStreak);
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isUnlocked
+                        ? badge.color.withValues(alpha: isDark ? 0.15 : 0.08)
+                        : (isDark ? const Color(0xFF161924) : const Color(0xFFF1F5F9)),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isUnlocked
+                          ? badge.color.withValues(alpha: 0.4)
+                          : (isDark ? const Color(0xFF252B3C) : const Color(0xFFE2E8F0)),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: isUnlocked
+                              ? badge.color.withValues(alpha: 0.25)
+                              : (isDark ? const Color(0xFF222736) : const Color(0xFFE2E8F0)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          badge.icon,
+                          size: 18,
+                          color: isUnlocked
+                              ? badge.color
+                              : (isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              badge.title,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: isUnlocked
+                                    ? (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)
+                                    : (isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              badge.requirement,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isUnlocked)
+                        const Icon(CupertinoIcons.checkmark_circle_fill, color: AppColors.success, size: 18)
+                      else
+                        const Icon(CupertinoIcons.lock_fill, color: Color(0xFF64748B), size: 14),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),

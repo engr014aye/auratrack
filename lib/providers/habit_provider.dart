@@ -13,6 +13,7 @@ class HabitProvider extends ChangeNotifier {
 
   DateTime _selectedDate = DateTime.now();
   String _selectedCategory = 'All';
+  String _statusFilter = 'All'; // 'All', 'Pending', 'Done'
   List<Habit> _habits = [];
   Map<int, bool> _completionMap = {};
   Map<int, bool> _restDayMap = {};
@@ -24,10 +25,12 @@ class HabitProvider extends ChangeNotifier {
   // Getters
   DateTime get selectedDate => _selectedDate;
   String get selectedCategory => _selectedCategory;
+  String get statusFilter => _statusFilter;
   List<Habit> get habits => _habits;
   bool get isLoading => _isLoading;
   bool get showCelebration => _showCelebration;
   List<HabitLog> get allLogs => _allLogs;
+  int get totalLifetimeLogs => _allLogs.where((l) => !l.isRestDay).length;
 
   String get selectedDateFormatted => DateFormat('yyyy-MM-dd').format(_selectedDate);
   bool get isSelectedDateToday {
@@ -37,11 +40,16 @@ class HabitProvider extends ChangeNotifier {
         _selectedDate.day == now.day;
   }
 
-  /// Returns habits that are scheduled for the currently selected date & filtered by category.
+  /// Returns habits that are scheduled for the currently selected date & filtered by category/status.
   List<Habit> get filteredHabits {
     var list = _habits.where((h) => h.isScheduledForDate(_selectedDate)).toList();
     if (_selectedCategory != 'All') {
       list = list.where((h) => h.category.toLowerCase() == _selectedCategory.toLowerCase()).toList();
+    }
+    if (_statusFilter == 'Pending') {
+      list = list.where((h) => !isCompleted(h.id!) && !isRestDay(h.id!)).toList();
+    } else if (_statusFilter == 'Done') {
+      list = list.where((h) => isCompleted(h.id!) || isRestDay(h.id!)).toList();
     }
     return list;
   }
@@ -53,18 +61,40 @@ class HabitProvider extends ChangeNotifier {
     return _statsMap[habitId] ?? (currentStreak: 0, longestStreak: 0, totalCompleted: 0);
   }
 
-  int get totalScheduledToday => filteredHabits.length;
+  int get totalScheduledToday => _habits.where((h) => h.isScheduledForDate(_selectedDate)).length;
   int get totalCount => totalScheduledToday;
 
   int get completedScheduledToday {
-    if (filteredHabits.isEmpty) return 0;
-    return filteredHabits.where((h) => isCompleted(h.id!) || isRestDay(h.id!)).length;
+    final scheduled = _habits.where((h) => h.isScheduledForDate(_selectedDate)).toList();
+    if (scheduled.isEmpty) return 0;
+    return scheduled.where((h) => isCompleted(h.id!) || isRestDay(h.id!)).length;
   }
   int get completedCount => completedScheduledToday;
 
   double get completionProgress {
-    if (filteredHabits.isEmpty) return 0.0;
-    return completedScheduledToday / filteredHabits.length;
+    if (totalScheduledToday == 0) return 0.0;
+    return completedScheduledToday / totalScheduledToday;
+  }
+
+  /// Calculates completion progress for the date strip indicator
+  double getProgressForDate(DateTime date) {
+    final scheduled = _habits.where((h) => h.isScheduledForDate(date)).toList();
+    if (scheduled.isEmpty) return 0.0;
+    final dateStr = DateFormat('yyyy-MM-dd').format(date);
+    final logsForDate = _allLogs.where((l) => l.completedDate == dateStr).toList();
+    int count = 0;
+    for (final h in scheduled) {
+      if (logsForDate.any((l) => l.habitId == h.id)) {
+        count++;
+      }
+    }
+    return count / scheduled.length;
+  }
+
+  void setStatusFilter(String filter) {
+    _statusFilter = filter;
+    SoundService().playClick();
+    notifyListeners();
   }
 
   Future<void> initialize() async {

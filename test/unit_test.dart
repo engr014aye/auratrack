@@ -3,6 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:auratrack/models/habit.dart';
 import 'package:auratrack/models/habit_log.dart';
 import 'package:auratrack/models/daily_reflection.dart';
+import 'package:auratrack/models/habit_templates.dart';
+import 'package:auratrack/models/milestone_badge.dart';
+import 'package:auratrack/models/daily_quote.dart';
 import 'package:auratrack/core/constants/app_colors.dart';
 
 void main() {
@@ -72,6 +75,38 @@ void main() {
       expect(reconstructed.date, '2026-08-27');
       expect(reconstructed.mood, 'Radiant');
       expect(reconstructed.note, 'Had an energetic day!');
+    });
+  });
+
+  group('New Feature Enhancements Tests', () {
+    test('HabitTemplate starter packs are non-empty and well formed', () {
+      expect(HabitTemplate.starterPacks.length, greaterThanOrEqualTo(5));
+      for (final tpl in HabitTemplate.starterPacks) {
+        expect(tpl.title.isNotEmpty, isTrue);
+        expect(tpl.category.isNotEmpty, isTrue);
+        expect(tpl.scheduledDays.isNotEmpty, isTrue);
+      }
+    });
+
+    test('MilestoneBadge unlocks correctly based on completions and streaks', () {
+      final firstSpark = MilestoneBadge.allBadges.firstWhere((b) => b.id == 'first_spark');
+      final onFire = MilestoneBadge.allBadges.firstWhere((b) => b.id == 'on_fire');
+      final habitMaster = MilestoneBadge.allBadges.firstWhere((b) => b.id == 'habit_master');
+
+      expect(firstSpark.checkUnlocked(0, 0), isFalse);
+      expect(firstSpark.checkUnlocked(1, 1), isTrue);
+
+      expect(onFire.checkUnlocked(1, 2), isFalse);
+      expect(onFire.checkUnlocked(5, 3), isTrue);
+
+      expect(habitMaster.checkUnlocked(10, 6), isFalse);
+      expect(habitMaster.checkUnlocked(10, 7), isTrue);
+    });
+
+    test('DailyQuote provides non-empty quote and author', () {
+      final quote = DailyQuote.today();
+      expect(quote.text.isNotEmpty, isTrue);
+      expect(quote.author.isNotEmpty, isTrue);
     });
   });
 

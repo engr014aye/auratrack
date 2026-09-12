@@ -68,9 +68,6 @@ class DatabaseHelper {
         updated_at TEXT NOT NULL
       )
     ''');
-
-    // Pre-populate with starter habits
-    await _seedDefaultHabits(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -81,71 +78,6 @@ class DatabaseHelper {
       try {
         await db.execute("ALTER TABLE habit_logs ADD COLUMN is_rest_day INTEGER DEFAULT 0");
       } catch (_) {}
-    }
-  }
-
-  Future<void> _seedDefaultHabits(Database db) async {
-    final now = DateTime.now().toIso8601String();
-    final starterHabits = [
-      {
-        'name': 'Drink 500ml Water',
-        'icon': 'drop',
-        'color': '#06B6D4',
-        'category': 'Morning',
-        'frequency': 'Daily',
-        'target_days': 7,
-        'scheduled_days': '1,2,3,4,5,6,7',
-        'created_at': now,
-        'is_archived': 0,
-      },
-      {
-        'name': '10-Min Mindfulness',
-        'icon': 'sparkles',
-        'color': '#EC4899',
-        'category': 'Mind',
-        'frequency': 'Daily',
-        'target_days': 7,
-        'scheduled_days': '1,2,3,4,5,6,7',
-        'created_at': now,
-        'is_archived': 0,
-      },
-      {
-        'name': '30-Min Cardio / Gym',
-        'icon': 'heart',
-        'color': '#10B981',
-        'category': 'Health',
-        'frequency': 'Daily',
-        'target_days': 5,
-        'scheduled_days': '1,2,3,4,5,6,7',
-        'created_at': now,
-        'is_archived': 0,
-      },
-      {
-        'name': 'Deep Focus Session',
-        'icon': 'flame',
-        'color': '#6366F1',
-        'category': 'Productivity',
-        'frequency': 'Weekdays',
-        'target_days': 5,
-        'scheduled_days': '1,2,3,4,5',
-        'created_at': now,
-        'is_archived': 0,
-      },
-      {
-        'name': 'Read 15 Pages',
-        'icon': 'book',
-        'color': '#F59E0B',
-        'category': 'Evening',
-        'frequency': 'Daily',
-        'target_days': 7,
-        'scheduled_days': '1,2,3,4,5,6,7',
-        'created_at': now,
-        'is_archived': 0,
-      },
-    ];
-
-    for (final habit in starterHabits) {
-      await db.insert('habits', habit);
     }
   }
 
@@ -163,7 +95,6 @@ class DatabaseHelper {
       await txn.delete('habit_logs');
       await txn.delete('habits');
       await txn.delete('daily_reflections');
-      await _seedDefaultHabits(txn as dynamic);
     });
   }
 

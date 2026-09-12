@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/database/database_helper.dart';
 import '../../core/services/launcher_service.dart';
+import '../../core/services/update_service.dart';
 import '../../providers/habit_provider.dart';
 import '../../providers/reflection_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -58,6 +59,10 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
+  void _checkForUpdates(BuildContext context) {
+    UpdateService.instance.checkForImmediateUpdate(context: context, showFeedbackIfLatest: true);
+  }
+
   void _showWipeConfirmation(BuildContext context) {
     final habitProvider = Provider.of<HabitProvider>(context, listen: false);
     final reflectionProvider = Provider.of<ReflectionProvider>(context, listen: false);
@@ -67,7 +72,7 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
         title: const Text('Reset All Habits?'),
-        content: const Text('This will reset your habits and check-ins back to the starter routine. This action cannot be undone.'),
+        content: const Text('This will delete all your habits, routines, check-ins, and daily reflections. This action cannot be undone.'),
         actions: [
           CupertinoDialogAction(
             isDefaultAction: true,
@@ -83,7 +88,7 @@ class SettingsScreen extends StatelessWidget {
               await reflectionProvider.loadForDate(DateTime.now());
               messenger.showSnackBar(
                 const SnackBar(
-                  content: Text('All data has been reset to starter defaults.'),
+                  content: Text('All habit data and reflections have been cleared.'),
                   backgroundColor: AppColors.warning,
                 ),
               );
@@ -291,7 +296,16 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(CupertinoIcons.share_solid, color: AppColors.primary),
+                  leading: const Icon(CupertinoIcons.arrow_down_circle_fill, color: AppColors.primary),
+                  title: const Text('Check for Updates', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Check Google Play for the latest features & fixes', style: TextStyle(fontSize: 12)),
+                  trailing: const Icon(CupertinoIcons.chevron_forward, size: 16),
+                  onTap: () => _checkForUpdates(context),
+                ),
+                const Divider(),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(CupertinoIcons.share_solid, color: AppColors.accent),
                   title: const Text('Share Daily Progress', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                   subtitle: const Text('Share routine completions and streaks with friends', style: TextStyle(fontSize: 12)),
                   trailing: const Icon(CupertinoIcons.chevron_forward, size: 16),
@@ -331,7 +345,7 @@ class SettingsScreen extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(CupertinoIcons.arrow_counterclockwise, color: AppColors.danger),
                   title: const Text('Reset All Habits', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.danger)),
-                  subtitle: const Text('Clear check-ins and reset to starter habits', style: TextStyle(fontSize: 12)),
+                  subtitle: const Text('Clear all habits, routines, check-ins, and reflections', style: TextStyle(fontSize: 12)),
                   trailing: const Icon(CupertinoIcons.chevron_forward, size: 16),
                   onTap: () => _showWipeConfirmation(context),
                 ),

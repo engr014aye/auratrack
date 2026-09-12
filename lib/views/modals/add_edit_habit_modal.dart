@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_icons.dart';
 import '../../models/habit.dart';
 import '../../models/habit_category.dart';
+import '../../models/habit_templates.dart';
 import '../../providers/habit_provider.dart';
 import '../widgets/bounce_button.dart';
 
@@ -89,6 +90,18 @@ class _AddEditHabitModalState extends State<AddEditHabitModal> {
         _scheduledDays.sort();
       }
       _selectedFrequency = 'Custom';
+    });
+  }
+
+  void _applyTemplate(HabitTemplate tpl) {
+    setState(() {
+      _nameController.text = tpl.title;
+      _selectedCategory = tpl.category;
+      _selectedIcon = tpl.iconKey;
+      _selectedColor = tpl.color;
+      _selectedFrequency = tpl.frequency;
+      _scheduledDays = List.from(tpl.scheduledDays);
+      _targetDays = tpl.targetDays;
     });
   }
 
@@ -187,6 +200,70 @@ class _AddEditHabitModalState extends State<AddEditHabitModal> {
               ],
             ),
             const SizedBox(height: 16),
+
+            if (!isEdit) ...[
+              Text(
+                'QUICK STARTER PACKS',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 42,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: HabitTemplate.starterPacks.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, idx) {
+                    final tpl = HabitTemplate.starterPacks[idx];
+                    final isCurrentSelected = _nameController.text == tpl.title;
+
+                    return BounceButton(
+                      onTap: () => _applyTemplate(tpl),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isCurrentSelected
+                              ? tpl.color
+                              : tpl.color.withValues(alpha: isDark ? 0.2 : 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isCurrentSelected ? tpl.color : tpl.color.withValues(alpha: 0.4),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              tpl.iconData,
+                              size: 15,
+                              color: isCurrentSelected ? Colors.white : tpl.color,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              tpl.title,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isCurrentSelected
+                                    ? Colors.white
+                                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Habit Name Input
             Text(

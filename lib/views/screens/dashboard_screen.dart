@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../models/daily_quote.dart';
 import '../../models/habit_category.dart';
 import '../../providers/habit_provider.dart';
 import '../modals/add_edit_habit_modal.dart';
@@ -77,27 +78,35 @@ class DashboardScreen extends StatelessWidget {
                   physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                   padding: const EdgeInsets.fromLTRB(18, 12, 18, 100),
                   children: [
-                    // 1. Horizontal Date Strip
+                    // 1. Horizontal Date Strip with Mini Progress Indicators
                     _buildDateStrip(context, habitProvider),
                     const SizedBox(height: 18),
 
                     // 2. Activity Ring Hero Card
                     _buildActivityRingCard(context, habitProvider),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 14),
 
-                    // 3. Category Filter Selector
-                    _buildCategoryFilter(context, habitProvider),
+                    // 3. Daily Inspiration Wisdom Capsule
+                    _buildDailyQuoteCard(context, isDark),
                     const SizedBox(height: 18),
 
-                    // 4. Habits List
+                    // 4. Category Filter Selector
+                    _buildCategoryFilter(context, habitProvider),
+                    const SizedBox(height: 8),
+
+                    // 5. Status Filter (All / Pending / Done)
+                    _buildStatusFilter(context, habitProvider),
+
+                    // 6. Habits List
                     if (filteredHabits.isEmpty)
-                      _buildEmptyState(context, isDark)
+                      _buildEmptyState(context, isDark, habitProvider)
                     else
                       ...filteredHabits.map((habit) {
                         final isDone = habitProvider.isCompleted(habit.id!);
                         final isRest = habitProvider.isRestDay(habit.id!);
                         final stats = habitProvider.getStats(habit.id!);
                         return HabitTile(
+                          key: ValueKey(habit.id),
                           habit: habit,
                           isCompleted: isDone,
                           isRestDay: isRest,
@@ -134,7 +143,7 @@ class DashboardScreen extends StatelessWidget {
     final days = List.generate(14, (i) => now.subtract(Duration(days: 7 - i)));
 
     return SizedBox(
-      height: 72,
+      height: 76,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -148,6 +157,7 @@ class DashboardScreen extends StatelessWidget {
           final isToday = day.year == now.year &&
               day.month == now.month &&
               day.day == now.day;
+          final dayProgress = provider.getProgressForDate(day);
 
           return BounceButton(
             onTap: () => provider.setSelectedDate(day),
@@ -191,15 +201,31 @@ class DashboardScreen extends StatelessWidget {
                           : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     '${day.day}',
                     style: TextStyle(
-                      fontSize: 17,
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
                       color: isSelected
                           ? Colors.white
                           : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Mini Progress Indicator
+                  Container(
+                    width: dayProgress > 0 ? 14 : 4,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Colors.white
+                          : (dayProgress >= 1.0
+                              ? const Color(0xFF10B981)
+                              : (dayProgress > 0
+                                  ? AppColors.primary
+                                  : (isDark ? const Color(0xFF333B4F) : const Color(0xFFCBD5E1)))),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ],
@@ -231,32 +257,34 @@ class DashboardScreen extends StatelessWidget {
       color: isDark ? const Color(0xFF191D29) : Colors.white,
       child: Row(
         children: [
-          // Activity Ring
-          ActivityRing(
-            progress: progress,
-            size: 84,
-            strokeWidth: 9,
-            gradientColors: const [Color(0xFF6366F1), Color(0xFFEC4899)],
-            centerChild: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$percent%',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+          // Activity Ring wrapped in RepaintBoundary for optimal 60/120fps performance
+          RepaintBoundary(
+            child: ActivityRing(
+              progress: progress,
+              size: 84,
+              strokeWidth: 9,
+              gradientColors: const [Color(0xFF6366F1), Color(0xFFEC4899)],
+              centerChild: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$percent%',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    ),
                   ),
-                ),
-                Text(
-                  'DONE',
-                  style: TextStyle(
-                    fontSize: 8,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                  Text(
+                    'DONE',
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -298,6 +326,60 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDailyQuoteCard(BuildContext context, bool isDark) {
+    final quote = DailyQuote.today();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF161924) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF242B3D) : const Color(0xFFE2E8F0),
+          width: 0.9,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(CupertinoIcons.quote_bubble_fill, size: 13, color: AppColors.primary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '"${quote.text}"',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    height: 1.35,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '— ${quote.author}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                  ),
                 ),
               ],
             ),
@@ -371,8 +453,49 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, bool isDark) {
+  Widget _buildStatusFilter(BuildContext context, HabitProvider provider) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final options = ['All', 'Pending', 'Done'];
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 2, top: 4, bottom: 8),
+      child: Row(
+        children: options.map((opt) {
+          final isSelected = provider.statusFilter == opt;
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: BounceButton(
+              onTap: () => provider.setStatusFilter(opt),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? (isDark ? const Color(0xFF2D3348) : const Color(0xFFE2E8F0))
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  opt,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected
+                        ? (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)
+                        : (isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context, bool isDark, HabitProvider provider) {
     final theme = Theme.of(context);
+    final isFilterActive = provider.selectedCategory != 'All' || provider.statusFilter != 'All';
 
     return Container(
       padding: const EdgeInsets.all(36),
@@ -380,20 +503,22 @@ class DashboardScreen extends StatelessWidget {
       child: Column(
         children: [
           Icon(
-            CupertinoIcons.sparkles,
+            isFilterActive ? CupertinoIcons.line_horizontal_3_decrease : CupertinoIcons.sparkles,
             size: 54,
             color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
           ),
           const SizedBox(height: 16),
           Text(
-            'No Habits Found',
+            isFilterActive ? 'No Matching Routines' : 'Start Your Routine',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            'Tap the "+ New" button at the top to add your first habit or routine.',
+            isFilterActive
+                ? 'No habits match your active filter. Try switching back to "All".'
+                : 'Tap "+ New" above to add your first habit or choose from starter packs!',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium,
           ),
