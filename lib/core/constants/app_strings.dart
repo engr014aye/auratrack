@@ -7,7 +7,7 @@ class AppStrings {
   static const String appPackage = 'com.palawshaapps.auratrack';
   static const String developerName = 'Palawsha Apps';
   static const String supportEmail = 'palawshaaltaf909@gmail.com';
-  static const String appVersion = '1.0.1';
+  static const String appVersion = '1.0.2';
 
   // Links
   static const String privacyPolicyUrl = 'https://doc-hosting.flycricket.io/auratrack-routine-habits-privacy-policy/89b48fb3-1fc2-483e-a104-09e651b95a24/privacy';
